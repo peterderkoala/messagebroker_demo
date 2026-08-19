@@ -1,0 +1,3 @@
+# Database-per-service ownership, one shared Postgres container
+
+Each service (Notification API, Email/SMS/Push Channel Services) owns its data exclusively: no service queries another's tables, and each gets its own logical database. Physically, all logical databases run in a single Postgres container in docker-compose rather than one container per service — this is purely a resource/startup-time convenience for a local learning environment and must not be read as looser isolation. Nothing in the code may assume co-location; connection strings are per-service and scoped to one database each, so splitting into separate containers later is a docker-compose change only, never a code change.
