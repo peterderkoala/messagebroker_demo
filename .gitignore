@@ -1,2 +1,19 @@
 .claude/worktrees/
 handoff/
+
+# .NET build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+
+# User-specific and IDE
+*.user
+*.suo
+.vs/
+.idea/
+*.swp
+
+# Local environment values - compose reads these, they are never committed
+.env

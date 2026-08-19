@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Deliberately dependency-free. Every service references this, so anything
+    added here is added to all of them.
+  -->
+  <PropertyGroup>
+    <RootNamespace>NotificationPlatform.Contracts</RootNamespace>
+  </PropertyGroup>
+
+</Project>
