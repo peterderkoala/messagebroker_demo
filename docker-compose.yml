@@ -1,0 +1,78 @@
+# Infrastructure for the Notification Platform (issue #7).
+#
+# This file provisions RabbitMQ, Redis, a single shared Postgres container,
+# and the Aspire Dashboard. Deliberately no init SQL and no CREATE DATABASE
+# anywhere: per ADR-0002, each service self-provisions its own logical
+# database via EF Core Migrate() at startup (see
+# src/BuildingBlocks/Persistence/DatabaseMigrationExtensions.cs), which is
+# also why services connect as one shared superuser rather than per-service
+# roles. Application services (Notification API, Channel Services) are not
+# scaffolded yet — this ticket is infrastructure-only.
+name: notification-platform
+
+networks:
+  notification-platform:
+    name: notification-platform
+
+volumes:
+  postgres-data:
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - notification-platform
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "${RABBITMQ_AMQP_PORT}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT}:15672"
+    networks:
+      - notification-platform
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT}:6379"
+    networks:
+      - notification-platform
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:13
+    environment:
+      DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
+    ports:
+      - "${ASPIRE_DASHBOARD_UI_PORT}:18888"
+      - "${ASPIRE_DASHBOARD_OTLP_PORT}:18889"
+    networks:
+      - notification-platform
