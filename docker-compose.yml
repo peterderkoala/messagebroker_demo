@@ -91,6 +91,8 @@ services:
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
       JWT__SIGNINGKEY: ${JWT_SIGNING_KEY}
       OTEL_SERVICE_NAME: notification-api
       OTEL_EXPORTER_OTLP_ENDPOINT: http://aspire-dashboard:18889
@@ -112,6 +114,8 @@ services:
       postgres:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   email-channel-service:

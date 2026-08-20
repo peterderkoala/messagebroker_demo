@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using NotificationPlatform.BuildingBlocks.Caching;
 using NotificationPlatform.BuildingBlocks.HealthChecks;
 using NotificationPlatform.BuildingBlocks.Observability;
 using NotificationPlatform.BuildingBlocks.Persistence;
@@ -15,6 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddPlatformObservability("notification-api");
 builder.AddPlatformJwtAuthentication();
+builder.AddPlatformCache("notification-api");
 
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));

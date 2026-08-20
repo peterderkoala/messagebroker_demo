@@ -1,17 +1,32 @@
 using MassTransit;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using NotificationPlatform.BuildingBlocks.Caching;
 using NotificationPlatform.Contracts;
 using NotificationPlatform.NotificationApi.Data;
 
 namespace NotificationPlatform.NotificationApi.Domain;
 
-/// <summary>The accept endpoint (ADR-0003, <c>CONTEXT.md</c> "Notification API").</summary>
+/// <summary>
+/// The accept and read endpoints (ADR-0003, <c>CONTEXT.md</c>
+/// "Notification API"). The read side is served cache-aside (#16, "Cache
+/// Entry"): Redis first, Postgres on a miss.
+/// </summary>
 public static class NotificationsEndpoint
 {
+    /// <summary>
+    /// How long a Cache Entry may serve a Notification before falling back
+    /// to Postgres again. Short enough that a bug in the invalidation-on-write
+    /// path below self-heals quickly rather than serving stale data for long.
+    /// </summary>
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(5);
+
     public static IEndpointRouteBuilder MapNotificationsEndpoint(this IEndpointRouteBuilder endpoints)
     {
         ArgumentNullException.ThrowIfNull(endpoints);
 
         endpoints.MapPost("/notifications", CreateNotification).RequireAuthorization();
+        endpoints.MapGet("/notifications/{id:guid}", GetNotification).RequireAuthorization();
 
         return endpoints;
     }
@@ -20,6 +35,7 @@ public static class NotificationsEndpoint
         CreateNotificationRequest request,
         NotificationDbContext db,
         IPublishEndpoint publishEndpoint,
+        IDistributedCache cache,
         CancellationToken cancellationToken)
     {
         // A Notification that can produce no Delivery Attempt is a caller
@@ -65,6 +81,37 @@ public static class NotificationsEndpoint
         // this is the point of the outbox here (CONTEXT.md "Outbox").
         await db.SaveChangesAsync(cancellationToken);
 
+        // A fresh Guid can never already hold a Cache Entry, so this is a
+        // no-op today - Notifications are never updated (CONTEXT.md). It's
+        // still the correct integration point: every write path invalidates
+        // before returning, so a Cache Entry can never go stale even if a
+        // future change makes Notifications mutable.
+        await cache.RemoveAsync(CacheKeyFor(notification.Id), cancellationToken);
+
         return Results.Created($"/notifications/{notification.Id}", new { notification.Id });
     }
+
+    private static async Task<IResult> GetNotification(
+        Guid id,
+        NotificationDbContext db,
+        IDistributedCache cache,
+        CancellationToken cancellationToken)
+    {
+        var response = await cache.GetOrCreateAsync(
+            CacheKeyFor(id),
+            CacheTtl,
+            async ct =>
+            {
+                var notification = await db.Notifications
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(n => n.Id == id, ct);
+
+                return notification is null ? null : NotificationResponse.From(notification);
+            },
+            cancellationToken);
+
+        return response is null ? Results.NotFound() : Results.Ok(response);
+    }
+
+    private static string CacheKeyFor(Guid id) => $"notification:{id}";
 }
