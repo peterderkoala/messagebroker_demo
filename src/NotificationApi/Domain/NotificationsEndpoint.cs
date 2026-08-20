@@ -1,6 +1,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
 using NotificationPlatform.BuildingBlocks.Caching;
 using NotificationPlatform.Contracts;
 using NotificationPlatform.NotificationApi.Data;
@@ -36,6 +37,7 @@ public static class NotificationsEndpoint
         NotificationDbContext db,
         IPublishEndpoint publishEndpoint,
         IDistributedCache cache,
+        ILogger<Notification> logger,
         CancellationToken cancellationToken)
     {
         // A Notification that can produce no Delivery Attempt is a caller
@@ -85,8 +87,10 @@ public static class NotificationsEndpoint
         // no-op today - Notifications are never updated (CONTEXT.md). It's
         // still the correct integration point: every write path invalidates
         // before returning, so a Cache Entry can never go stale even if a
-        // future change makes Notifications mutable.
-        await cache.RemoveAsync(CacheKeyFor(notification.Id), cancellationToken);
+        // future change makes Notifications mutable. Best-effort (#17): a
+        // Redis fault here must never turn an already-committed write into
+        // a failed request.
+        await cache.InvalidateAsync(logger, CacheKeyFor(notification.Id), cancellationToken);
 
         return Results.Created($"/notifications/{notification.Id}", new { notification.Id });
     }
@@ -95,9 +99,11 @@ public static class NotificationsEndpoint
         Guid id,
         NotificationDbContext db,
         IDistributedCache cache,
+        ILogger<Notification> logger,
         CancellationToken cancellationToken)
     {
         var response = await cache.GetOrCreateAsync(
+            logger,
             CacheKeyFor(id),
             CacheTtl,
             async ct =>
