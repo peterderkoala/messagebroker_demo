@@ -1,13 +1,13 @@
-# Infrastructure for the Notification Platform (issue #7).
+# Infrastructure and services for the Notification Platform (issue #7 for the
+# infra, issue #8 for the Notification API).
 #
 # This file provisions RabbitMQ, Redis, a single shared Postgres container,
-# and the Aspire Dashboard. Deliberately no init SQL and no CREATE DATABASE
-# anywhere: per ADR-0002, each service self-provisions its own logical
-# database via EF Core Migrate() at startup (see
+# the Aspire Dashboard, and the platform's services. Deliberately no init SQL
+# and no CREATE DATABASE anywhere: per ADR-0002, each service self-provisions
+# its own logical database via EF Core Migrate() at startup (see
 # src/BuildingBlocks/Persistence/DatabaseMigrationExtensions.cs), which is
 # also why services connect as one shared superuser rather than per-service
-# roles. Application services (Notification API, Channel Services) are not
-# scaffolded yet — this ticket is infrastructure-only.
+# roles.
 name: notification-platform
 
 networks:
@@ -76,3 +76,29 @@ services:
       - "${ASPIRE_DASHBOARD_OTLP_PORT}:18889"
     networks:
       - notification-platform
+
+  notification-api:
+    build:
+      context: .
+      dockerfile: src/NotificationApi/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      ASPNETCORE_URLS: http://+:8080
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      JWT__SIGNINGKEY: ${JWT_SIGNING_KEY}
+      OTEL_SERVICE_NAME: notification-api
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://aspire-dashboard:18889
+    ports:
+      - "${NOTIFICATION_API_PORT}:8080"
+    networks:
+      - notification-platform
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
