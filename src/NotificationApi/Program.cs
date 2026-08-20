@@ -76,7 +76,8 @@ builder.Services.AddMassTransit(x =>
 });
 
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<NotificationDbContext>("postgres");
+    .AddDbContextCheck<NotificationDbContext>("postgres")
+    .AddPlatformCacheHealthCheck();
 
 var app = builder.Build();
 
