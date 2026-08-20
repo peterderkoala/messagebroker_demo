@@ -7,8 +7,13 @@ namespace NotificationPlatform.EmailChannelService.Persistence;
 /// <summary>
 /// This service's own logical database (ADR-0002: database-per-service on a
 /// shared Postgres container). Holds Delivery Attempts plus MassTransit's
-/// consumer inbox tables, used only for idempotent-consumer dedup - this
-/// service never publishes, so no outbox tables are needed.
+/// EF Core outbox tables. This service only uses the consumer inbox side of
+/// that pattern for idempotent-consumer dedup (it never calls
+/// UseBusOutbox(), since it never publishes) - but UseEntityFrameworkOutbox()
+/// on the receive endpoint still requires OutboxState/OutboxMessage in the
+/// model, not just InboxState, or the receive pipeline throws on every
+/// message. See docs/research/masstransit-outbox-retry-dlq.md's example
+/// DbContext, which adds all three regardless of the publish/inbox split.
 /// </summary>
 public sealed class EmailChannelDbContext(DbContextOptions<EmailChannelDbContext> options)
     : DbContext(options)
@@ -22,6 +27,11 @@ public sealed class EmailChannelDbContext(DbContextOptions<EmailChannelDbContext
         // MassTransit's consumer inbox: dedups a redelivered NotificationRequested
         // by its MessageId before the consumer runs again.
         modelBuilder.AddInboxStateEntity();
+
+        // Required by UseEntityFrameworkOutbox() on the receive endpoint even
+        // though this service never publishes and never calls UseBusOutbox().
+        modelBuilder.AddOutboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
 
         modelBuilder.Entity<DeliveryAttempt>(entity =>
         {
