@@ -42,7 +42,8 @@ public static class NotificationsEndpoint
     {
         // A Notification that can produce no Delivery Attempt is a caller
         // error and must never reach the outbox (ADR-0003).
-        if (request.Channels.Count == 0 || request.Channels.Any(channel => !ChannelRouting.All.Contains(channel)))
+        if (request.Channels is null || request.Channels.Count == 0
+            || request.Channels.Any(channel => !ChannelRouting.All.Contains(channel)))
         {
             return Results.Problem(
                 title: "At least one valid Targeted Channel is required.",
