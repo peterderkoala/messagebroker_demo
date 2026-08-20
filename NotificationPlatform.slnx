@@ -12,4 +12,7 @@
   <Folder Name="/src/EmailChannelService/">
     <Project Path="src/EmailChannelService/NotificationPlatform.EmailChannelService.csproj" />
   </Folder>
+  <Folder Name="/src/SmsChannelService/">
+    <Project Path="src/SmsChannelService/NotificationPlatform.SmsChannelService.csproj" />
+  </Folder>
 </Solution>

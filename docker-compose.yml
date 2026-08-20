@@ -127,3 +127,27 @@ services:
       # start, not for it to be ready.
       aspire-dashboard:
         condition: service_started
+
+  sms-channel-service:
+    build:
+      context: .
+      dockerfile: src/SmsChannelService/Dockerfile
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://aspire-dashboard:18889
+      OTEL_SERVICE_NAME: sms-channel-service
+    networks:
+      - notification-platform
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      # aspire-dashboard has no healthcheck defined (its image is distroless -
+      # no shell/curl/wget to probe with), so this can only wait for it to
+      # start, not for it to be ready.
+      aspire-dashboard:
+        condition: service_started
