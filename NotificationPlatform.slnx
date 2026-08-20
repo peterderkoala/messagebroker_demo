@@ -18,4 +18,7 @@
   <Folder Name="/src/PushChannelService/">
     <Project Path="src/PushChannelService/NotificationPlatform.PushChannelService.csproj" />
   </Folder>
+  <Folder Name="/src/ComparisonStreamDemo/">
+    <Project Path="src/ComparisonStreamDemo/NotificationPlatform.ComparisonStreamDemo.csproj" />
+  </Folder>
 </Solution>

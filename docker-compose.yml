@@ -203,3 +203,19 @@ services:
       # start, not for it to be ready.
       aspire-dashboard:
         condition: service_started
+
+  # Standalone Redis Streams demo (issue #13, CONTEXT.md "Comparison Stream")
+  # - entirely separate from the Notification flow. No health check: it has
+  # no HTTP surface, just a producer/consumer console loop.
+  comparison-stream-demo:
+    build:
+      context: .
+      dockerfile: src/ComparisonStreamDemo/Dockerfile
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+    networks:
+      - notification-platform
+    depends_on:
+      redis:
+        condition: service_healthy
