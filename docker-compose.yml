@@ -1,5 +1,6 @@
 # Infrastructure and services for the Notification Platform (issue #7 for the
-# infra, issue #8 for the Notification API).
+# infra, issue #8 for the Notification API, issue #9 for the Email Channel
+# Service).
 #
 # This file provisions RabbitMQ, Redis, a single shared Postgres container,
 # the Aspire Dashboard, and the platform's services. Deliberately no init SQL
@@ -102,3 +103,27 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+
+  email-channel-service:
+    build:
+      context: .
+      dockerfile: src/EmailChannelService/Dockerfile
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://aspire-dashboard:18889
+      OTEL_SERVICE_NAME: email-channel-service
+    networks:
+      - notification-platform
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      # aspire-dashboard has no healthcheck defined (its image is distroless -
+      # no shell/curl/wget to probe with), so this can only wait for it to
+      # start, not for it to be ready.
+      aspire-dashboard:
+        condition: service_started

@@ -9,4 +9,7 @@
   <Folder Name="/src/NotificationApi/">
     <Project Path="src/NotificationApi/NotificationPlatform.NotificationApi.csproj" />
   </Folder>
+  <Folder Name="/src/EmailChannelService/">
+    <Project Path="src/EmailChannelService/NotificationPlatform.EmailChannelService.csproj" />
+  </Folder>
 </Solution>
