@@ -6,4 +6,7 @@
   <Folder Name="/src/Contracts/">
     <Project Path="src/Contracts/NotificationPlatform.Contracts.csproj" />
   </Folder>
+  <Folder Name="/src/EmailChannelService/">
+    <Project Path="src/EmailChannelService/NotificationPlatform.EmailChannelService.csproj" />
+  </Folder>
 </Solution>

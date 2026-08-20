@@ -76,3 +76,27 @@ services:
       - "${ASPIRE_DASHBOARD_OTLP_PORT}:18889"
     networks:
       - notification-platform
+
+  email-channel-service:
+    build:
+      context: .
+      dockerfile: src/EmailChannelService/Dockerfile
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://aspire-dashboard:18889
+      OTEL_SERVICE_NAME: email-channel-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      # aspire-dashboard has no healthcheck defined (its image is distroless -
+      # no shell/curl/wget to probe with), so this can only wait for it to
+      # start, not for it to be ready.
+      aspire-dashboard:
+        condition: service_started
+    networks:
+      - notification-platform
