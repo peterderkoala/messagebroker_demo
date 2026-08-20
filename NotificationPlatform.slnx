@@ -15,4 +15,7 @@
   <Folder Name="/src/SmsChannelService/">
     <Project Path="src/SmsChannelService/NotificationPlatform.SmsChannelService.csproj" />
   </Folder>
+  <Folder Name="/src/PushChannelService/">
+    <Project Path="src/PushChannelService/NotificationPlatform.PushChannelService.csproj" />
+  </Folder>
 </Solution>
